@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Suivi Régime — Jérôme</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#121a2a; --muted:#94a3b8; --text:#e2e8f0; --accent:#60a5fa;
+      --good:#34d399; --warn:#fbbf24; --bad:#fb7185; --border:rgba(148,163,184,.18);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070a12, var(--bg));color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px;margin-top:2px}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:980px){.grid{grid-template-columns:420px 1fr}}
+    .card{background:rgba(18,26,42,.86);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+    .card h2{font-size:14px;margin:0 0 10px 0;color:#cbd5e1}
+    label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
+    input, textarea, select{
+      width:100%; padding:10px 10px; border-radius:12px; border:1px solid var(--border);
+      background:#0b1220; color:var(--text); outline:none;
+    }
+    input:focus, textarea:focus{border-color:rgba(96,165,250,.55)}
+    textarea{min-height:70px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{
+      border:1px solid var(--border); background:#0b1220; color:var(--text);
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600
+    }
+    button.primary{background:rgba(96,165,250,.14);border-color:rgba(96,165,250,.35)}
+    button.danger{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.35)}
+    button:active{transform:translateY(1px)}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(min-width:720px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    .kpi{padding:12px;border-radius:16px;border:1px solid var(--border);background:rgba(11,18,32,.55)}
+    .kpi .t{font-size:12px;color:var(--muted)}
+    .kpi .v{font-size:18px;font-weight:800;margin-top:6px}
+    .progressWrap{margin-top:12px}
+    .progressHead{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;margin-bottom:6px}
+    .bar{height:14px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden;border:1px solid var(--border)}
+    .bar > div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--good))}
+    .charts{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:900px){.charts{grid-template-columns:1fr 1fr}}
+    canvas{background:rgba(11,18,32,.35);border:1px solid var(--border);border-radius:16px;padding:10px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th, td{padding:8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+    th{color:#cbd5e1;font-weight:700}
+    td{color:#e5e7eb}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(11,18,32,.55);font-size:12px;color:var(--muted)}
+    .rightTools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .file{display:none}
+    .small{font-size:12px;color:var(--muted);line-height:1.35}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Suivi Régime</h1>
+        <div class="sub">Une mini-appli locale (PC & téléphone) : données sauvegardées sur ton appareil.</div>
+      </div>
+      <div class="rightTools">
+        <span class="pill" id="countPill">0 entrée</span>
+        <button id="exportBtn">Exporter</button>
+        <button id="importBtn">Importer</button>
+        <input class="file" type="file" id="importFile" accept="application/json" />
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: form + stats -->
+      <section class="card">
+        <h2>Ajouter / modifier une entrée</h2>
+
+        <div class="row">
+          <div>
+            <label>Date</label>
+            <input type="date" id="date" />
+          </div>
+          <div>
+            <label>Objectif poids (kg)</label>
+            <input type="number" step="0.1" id="goalWeight" placeholder="Ex: 85.0" />
+          </div>
+        </div>
+
+        <div class="row3">
+          <div>
+            <label>Poids (kg)</label>
+            <input type="number" step="0.1" id="weight" placeholder="Ex: 101.3" />
+          </div>
+          <div>
+            <label>Taille (cm)</label>
+            <input type="number" step="0.1" id="height" placeholder="Ex: 170" />
+          </div>
+          <div>
+            <label>IMC (auto)</label>
+            <input type="text" id="bmi" readonly />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Ventre / Tour de taille (cm)</label>
+            <input type="number" step="0.1" id="waist" placeholder="Ex: 110" />
+          </div>
+          <div>
+            <label>Poitrine (cm)</label>
+            <input type="number" step="0.1" id="chest" placeholder="Ex: 105" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Bras (cm)</label>
+            <input type="number" step="0.1" id="arm" placeholder="Ex: 38" />
+          </div>
+          <div>
+            <label>Notes</label>
+            <input type="text" id="notes" placeholder="Sport, repas, sommeil, etc." />
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="saveBtn">Enregistrer</button>
+          <button id="clearBtn">Effacer le formulaire</button>
+          <button class="danger" id="deleteBtn" disabled>Supprimer cette date</button>
+          <button class="danger" id="wipeAllBtn">Tout réinitialiser</button>
+        </div>
+
+        <div style="margin-top:14px" class="kpis">
+          <div class="kpi">
+            <div class="t">Poids actuel</div>
+            <div class="v" id="kpiWeight">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Perdu / pris</div>
+            <div class="v" id="kpiDelta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">IMC actuel</div>
+            <div class="v" id="kpiBmi">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Ventre perdu</div>
+            <div class="v" id="kpiWaistDelta">—</div>
+          </div>
+        </div>
+
+        <div class="progressWrap">
+          <div class="progressHead">
+            <span>Progression vers l’objectif</span>
+            <span id="progressTxt">—</span>
+          </div>
+          <div class="bar"><div id="progressBar"></div></div>
+          <div class="small" style="margin-top:8px">
+            💡 Astuce : mets ton <b>objectif</b> une fois (il sera réutilisé). Tes données restent sur ton appareil.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: charts + history -->
+      <section class="card">
+        <h2>Graphiques</h2>
+
+        <div class="charts">
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:6px">Poids</div>
+            <canvas id="chartWeight" height="220"></canvas>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:6px">Ventre (tour de taille)</div>
+            <canvas id="chartWaist" height="220"></canvas>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:6px">Poitrine</div>
+            <canvas id="chartChest" height="220"></canvas>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:6px">Bras</div>
+            <canvas id="chartArm" height="220"></canvas>
+          </div>
+        </div>
+
+        <h2 style="margin-top:14px">Historique</h2>
+        <div class="small">Clique une ligne pour charger/modifier l’entrée.</div>
+
+        <div style="margin-top:10px;max-height:260px;overflow:auto;border-radius:14px;border:1px solid var(--border)">
+          <table id="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Poids</th>
+                <th>IMC</th>
+                <th>Ventre</th>
+                <th>Poitrine</th>
+                <th>Bras</th>
+                <th class="muted">Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+  // --- Storage ---
+  const KEY = "suivi_regime_v1";
+
+  /** @type {{date:string, weight?:number, height?:number, waist?:number, chest?:number, arm?:number, goalWeight?:number, notes?:string}[]} */
+  let entries = [];
+
+  // --- DOM ---
+  const $ = (id) => document.getElementById(id);
+
+  const dateEl = $("date");
+  const weightEl = $("weight");
+  const heightEl = $("height");
+  const bmiEl = $("bmi");
+  const waistEl = $("waist");
+  const chestEl = $("chest");
+  const armEl = $("arm");
+  const goalEl = $("goalWeight");
+  const notesEl = $("notes");
+
+  const saveBtn = $("saveBtn");
+  const clearBtn = $("clearBtn");
+  const deleteBtn = $("deleteBtn");
+  const wipeAllBtn = $("wipeAllBtn");
+
+  const exportBtn = $("exportBtn");
+  const importBtn = $("importBtn");
+  const importFile = $("importFile");
+
+  const countPill = $("countPill");
+
+  // KPIs
+  const kpiWeight = $("kpiWeight");
+  const kpiDelta = $("kpiDelta");
+  const kpiBmi = $("kpiBmi");
+  const kpiWaistDelta = $("kpiWaistDelta");
+  const progressBar = $("progressBar");
+  const progressTxt = $("progressTxt");
+
+  // Table
+  const tableBody = $("table").querySelector("tbody");
+
+  // Charts
+  let chartWeight, chartWaist, chartChest, chartArm;
+
+  // --- Utils ---
+  const toNum = (v) => {
+    if (v === "" || v == null) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const fmt = (n, digits=1) => (n==null || !Number.isFinite(n)) ? "—" : n.toFixed(digits).replace(".", ",");
+  const fmt0 = (n) => (n==null || !Number.isFinite(n)) ? "—" : Math.round(n).toString();
+  const fmtSigned = (n, digits=1) => {
+    if (n==null || !Number.isFinite(n)) return "—";
+    const sign = n > 0 ? "+" : "";
+    return (sign + n.toFixed(digits)).replace(".", ",");
+  };
+
+  const bmi = (weightKg, heightCm) => {
+    if (!weightKg || !heightCm) return undefined;
+    const h = heightCm / 100;
+    if (h <= 0) return undefined;
+    return weightKg / (h*h);
+  };
+
+  const sortEntries = () => entries.sort((a,b)=> a.date.localeCompare(b.date));
+
+  const load = () => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      entries = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(entries)) entries = [];
+    } catch {
+      entries = [];
+    }
+    sortEntries();
+  };
+
+  const save = () => {
+    localStorage.setItem(KEY, JSON.stringify(entries));
+  };
+
+  const todayISO = () => {
+    const d = new Date();
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0,10);
+  };
+
+  // --- State ---
+  let selectedDate = null;
+
+  const setSelected = (date) => {
+    selectedDate = date;
+    deleteBtn.disabled = !selectedDate;
+  };
+
+  const clearForm = () => {
+    dateEl.value = todayISO();
+    weightEl.value = "";
+    heightEl.value = "";
+    bmiEl.value = "";
+    waistEl.value = "";
+    chestEl.value = "";
+    armEl.value = "";
+    notesEl.value = "";
+    // objectif: on garde la valeur la plus récente si elle existe
+    goalEl.value = latestGoal() ?? "";
+    setSelected(null);
+  };
+
+  const latestGoal = () => {
+    // dernier objectif non vide
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (typeof entries[i].goalWeight === "number") return entries[i].goalWeight;
+    }
+    return undefined;
+  };
+
+  const fillBmi = () => {
+    const w = toNum(weightEl.value);
+    const h = toNum(heightEl.value);
+    const b = bmi(w, h);
+    bmiEl.value = b ? fmt(b, 1) : "";
+  };
+
+  // --- Render ---
+  function renderTable(){
+    tableBody.innerHTML = "";
+    const rows = [...entries].slice().reverse(); // latest first
+    for(const e of rows){
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
+      tr.innerHTML = `
+        <td><b>${e.date}</b></td>
+        <td>${fmt(e.weight,1)}</td>
+        <td>${fmt(bmi(e.weight, e.height),1)}</td>
+        <td>${fmt(e.waist,1)}</td>
+        <td>${fmt(e.chest,1)}</td>
+        <td>${fmt(e.arm,1)}</td>
+        <td class="muted">${(e.notes ?? "").replaceAll("<","&lt;")}</td>
+      `;
+      tr.addEventListener("click", ()=> loadEntry(e.date));
+      tableBody.appendChild(tr);
+    }
+    countPill.textContent = `${entries.length} entrée${entries.length>1?"s":""}`;
+  }
+
+  function renderKpis(){
+    if(entries.length === 0){
+      kpiWeight.textContent = "—";
+      kpiDelta.textContent = "—";
+      kpiBmi.textContent = "—";
+      kpiWaistDelta.textContent = "—";
+      progressTxt.textContent = "—";
+      progressBar.style.width = "0%";
+      return;
+    }
+    const first = entries[0];
+    const last = entries[entries.length-1];
+
+    // Poids actuel / delta
+    kpiWeight.textContent = last.weight != null ? `${fmt(last.weight,1)} kg` : "—";
+    const dW = (last.weight!=null && first.weight!=null) ? (last.weight - first.weight) : undefined;
+    kpiDelta.textContent = dW!=null ? `${fmtSigned(dW,1)} kg` : "—";
+
+    // IMC actuel
+    const b = bmi(last.weight, last.height ?? first.height);
+    kpiBmi.textContent = b!=null ? fmt(b,1) : "—";
+
+    // Ventre perdu
+    const dWaist = (last.waist!=null && first.waist!=null) ? (last.waist - first.waist) : undefined;
+    kpiWaistDelta.textContent = dWaist!=null ? `${fmtSigned(dWaist,1)} cm` : "—";
+
+    // Progression vers objectif
+    const goal = last.goalWeight ?? latestGoal();
+    if(goal!=null && last.weight!=null){
+      // progress = (start - current) / (start - goal) if goal < start, else if goal > start then inverted
+      const start = first.weight;
+      const current = last.weight;
+
+      let pct = undefined;
+      if(start!=null && current!=null && goal!=null && start !== goal){
+        pct = (start - current) / (start - goal);
+      } else if(current!=null && goal!=null && current !== goal){
+        // fallback: simple distance ratio
+        pct = 1 - Math.abs(current-goal)/Math.abs(current);
+      }
+
+      if(pct!=null && Number.isFinite(pct)){
+        pct = Math.max(0, Math.min(1, pct));
+        progressBar.style.width = `${Math.round(pct*100)}%`;
+        progressTxt.textContent = `${Math.round(pct*100)}% (objectif ${fmt(goal,1)} kg)`;
+      } else {
+        progressBar.style.width = "0%";
+        progressTxt.textContent = "—";
+      }
+    } else {
+      progressBar.style.width = "0%";
+      progressTxt.textContent = "Renseigne un objectif + un poids";
+    }
+  }
+
+  function buildSeries(key){
+    const labels = entries.map(e=>e.date);
+    const values = entries.map(e=> (typeof e[key] === "number" ? e[key] : null));
+    return {labels, values};
+  }
+
+  function makeLineChart(canvasId, labels, values, title){
+    const ctx = document.getElementById(canvasId);
+    return new Chart(ctx, {
+      type:"line",
+      data:{
+        labels,
+        datasets:[{
+          label:title,
+          data: values,
+          tension:0.25,
+          spanGaps:true,
+          pointRadius:3,
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{mode:"index", intersect:false}
+        },
+        interaction:{mode:"index", intersect:false},
+        scales:{
+          x:{ticks:{color:"#94a3b8"}, grid:{color:"rgba(148,163,184,.12)"}},
+          y:{ticks:{color:"#94a3b8"}, grid:{color:"rgba(148,163,184,.12)"}}
+        }
+      }
+    });
+  }
+
+  function renderCharts(){
+    const w = buildSeries("weight");
+    const wa = buildSeries("waist");
+    const ch = buildSeries("chest");
+    const ar = buildSeries("arm");
+
+    // destroy old
+    [chartWeight, chartWaist, chartChest, chartArm].forEach(c=> c && c.destroy());
+
+    chartWeight = makeLineChart("chartWeight", w.labels, w.values, "Poids (kg)");
+    chartWaist  = makeLineChart("chartWaist",  wa.labels, wa.values, "Ventre (cm)");
+    chartChest  = makeLineChart("chartChest",  ch.labels, ch.values, "Poitrine (cm)");
+    chartArm    = makeLineChart("chartArm",    ar.labels, ar.values, "Bras (cm)");
+  }
+
+  function renderAll(){
+    sortEntries();
+    renderTable();
+    renderKpis();
+    renderCharts();
+  }
+
+  // --- CRUD ---
+  function upsertEntry(e){
+    const idx = entries.findIndex(x=>x.date===e.date);
+    if(idx>=0) entries[idx] = e;
+    else entries.push(e);
+    sortEntries();
+    save();
+    renderAll();
+  }
+
+  function loadEntry(date){
+    const e = entries.find(x=>x.date===date);
+    if(!e) return;
+    dateEl.value = e.date;
+    weightEl.value = e.weight ?? "";
+    heightEl.value = e.height ?? "";
+    waistEl.value  = e.waist ?? "";
+    chestEl.value  = e.chest ?? "";
+    armEl.value    = e.arm ?? "";
+    goalEl.value   = e.goalWeight ?? (latestGoal() ?? "");
+    notesEl.value  = e.notes ?? "";
+    fillBmi();
+    setSelected(e.date);
+  }
+
+  function deleteEntry(date){
+    entries = entries.filter(x=>x.date!==date);
+    save();
+    renderAll();
+    clearForm();
+  }
+
+  // --- Events ---
+  [weightEl, heightEl].forEach(el => el.addEventListener("input", fillBmi));
+
+  saveBtn.addEventListener("click", ()=>{
+    const date = dateEl.value || todayISO();
+    const entry = {
+      date,
+      weight: toNum(weightEl.value),
+      height: toNum(heightEl.value),
+      waist:  toNum(waistEl.value),
+      chest:  toNum(chestEl.value),
+      arm:    toNum(armEl.value),
+      goalWeight: toNum(goalEl.value),
+      notes: (notesEl.value || "").trim()
+    };
+    upsertEntry(entry);
+    setSelected(date);
+  });
+
+  clearBtn.addEventListener("click", clearForm);
+
+  deleteBtn.addEventListener("click", ()=>{
+    if(!selectedDate) return;
+    if(confirm(`Supprimer l'entrée du ${selectedDate} ?`)){
+      deleteEntry(selectedDate);
+    }
+  });
+
+  wipeAllBtn.addEventListener("click", ()=>{
+    if(confirm("Tout supprimer (toutes les données) ?")){
+      entries = [];
+      save();
+      renderAll();
+      clearForm();
+    }
+  });
+
+  exportBtn.addEventListener("click", ()=>{
+    const blob = new Blob([JSON.stringify({version:1, exportedAt:new Date().toISOString(), entries}, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `suivi-regime-export-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  importBtn.addEventListener("click", ()=> importFile.click());
+
+  importFile.addEventListener("change", async (ev)=>{
+    const file = ev.target.files?.[0];
+    if(!file) return;
+    try{
+      const txt = await file.text();
+      const obj = JSON.parse(txt);
+      const incoming = Array.isArray(obj.entries) ? obj.entries : (Array.isArray(obj) ? obj : null);
+      if(!incoming) throw new Error("Format invalide");
+      // Merge by date
+      for(const e of incoming){
+        if(!e?.date) continue;
+        const cleaned = {
+          date: String(e.date).slice(0,10),
+          weight: typeof e.weight==="number" ? e.weight : toNum(e.weight),
+          height: typeof e.height==="number" ? e.height : toNum(e.height),
+          waist:  typeof e.waist==="number" ? e.waist : toNum(e.waist),
+          chest:  typeof e.chest==="number" ? e.chest : toNum(e.chest),
+          arm:    typeof e.arm==="number" ? e.arm : toNum(e.arm),
+          goalWeight: typeof e.goalWeight==="number" ? e.goalWeight : toNum(e.goalWeight),
+          notes: (e.notes ?? "").toString()
+        };
+        upsertEntry(cleaned);
+      }
+      alert("Import terminé ✅");
+    } catch(err){
+      alert("Import impossible : fichier non valide.");
+    } finally {
+      importFile.value = "";
+    }
+  });
+
+  // --- Init ---
+  load();
+  renderAll();
+  clearForm();
+</script>
+</body>
+</html>
