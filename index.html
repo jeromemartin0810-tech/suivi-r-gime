@@ -503,13 +503,6 @@ window.auth.signInAnonymously().catch(console.error);
   }
 
   // --- CRUD ---
-  function upsertEntry(e){
-    const idx = entries.findIndex(x=>x.date===e.date);
-    if(idx>=0) entries[idx] = e;
-    else entries.push(e);
-    sortEntries();
-    save();
-    renderAll();
    function upsertEntry(e){
   const idx = entries.findIndex(x=>x.date===e.date);
 
