@@ -615,6 +615,26 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 auth.signInAnonymously();
+  // 🔥 SYNC AUTO FIRESTORE
+auth.onAuthStateChanged(async (user) => {
+  if (!user) return;
+
+  const uid = user.uid;
+  const ref = db.collection("users").doc(uid).collection("entries");
+
+  ref.onSnapshot((snap) => {
+    entries = [];
+    snap.forEach((doc) => {
+      entries.push(doc.data());
+    });
+    renderAll();
+  });
+
+  window.saveToCloud = async (entry) => {
+    await ref.doc(entry.date).set(entry);
+  };
+});
+
 </script>
 
 </script>
