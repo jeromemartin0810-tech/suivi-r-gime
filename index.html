@@ -486,6 +486,11 @@
     sortEntries();
     save();
     renderAll();
+    // ✅ Envoi cloud si dispo
+if (window.saveToCloud) {
+  window.saveToCloud(entry);
+}
+
   }
 
   function loadEntry(date){
@@ -508,6 +513,10 @@
     save();
     renderAll();
     clearForm();
+    if (window.deleteFromCloud) {
+  window.deleteFromCloud(date);
+}
+
   }
 
   // --- Events ---
