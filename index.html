@@ -593,6 +593,30 @@
   load();
   renderAll();
   clearForm();
+  <!-- FIREBASE SYNC -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDYXewH6UpLoipzXZK2NoeArReOCN8FJPQ",
+  authDomain: "suivi-regime.firebaseapp.com",
+  projectId: "suivi-regime",
+  storageBucket: "suivi-regime.firebasestorage.app",
+  messagingSenderId: "573248667308",
+  appId: "1:573248667308:web:bad6e3ceed1636febae909",
+  measurementId: "G-MW4DT858DX"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+auth.signInAnonymously();
+</script>
+
 </script>
 </body>
 </html>
