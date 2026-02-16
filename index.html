@@ -510,12 +510,21 @@ window.auth.signInAnonymously().catch(console.error);
     sortEntries();
     save();
     renderAll();
-    // ✅ Envoi cloud si dispo
-if (window.saveToCloud) {
-  window.saveToCloud(entry);
-}
+   function upsertEntry(e){
+  const idx = entries.findIndex(x=>x.date===e.date);
 
+  if(idx>=0) entries[idx] = e;
+  else entries.push(e);
+
+  sortEntries();
+  save();
+  renderAll();
+
+  // ☁️ Envoi Firestore
+  if (window.saveToCloud) {
+    window.saveToCloud(e);
   }
+}
 
   function loadEntry(date){
     const e = entries.find(x=>x.date===date);
