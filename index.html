@@ -1,16 +1,5 @@
 <!doctype html>
 <html lang="fr">
-  <!-- FIREBASE SYNC -->
-<script src="...firebase-app-compat.js"></script>
-<script src="...firebase-auth-compat.js"></script>
-<script src="...firebase-firestore-compat.js"></script>
-
-<script>
-const firebaseConfig = {...}
-firebase.initializeApp(firebaseConfig);
-...
-</script>
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -18,6 +7,30 @@ firebase.initializeApp(firebaseConfig);
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDYXewH6UpLoipzXZK2NoeArReOCN8FJPQ",
+  authDomain: "suivi-regime.firebaseapp.com",
+  projectId: "suivi-regime",
+  storageBucket: "suivi-regime.firebasestorage.app",
+  messagingSenderId: "573248667308",
+  appId: "1:573248667308:web:bad6e3ceed1636febae909",
+  measurementId: "G-MW4DT858DX"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+
+window.auth.signInAnonymously().catch(console.error);
+</script>
+
 
   <style>
     :root{
